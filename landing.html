@@ -206,7 +206,6 @@
   .pricecard ul { list-style: none; padding: 0; margin: 0 0 1.2rem; }
   .pricecard li { display: flex; gap: .5rem; font-size: .85rem; color: var(--muted); margin: .45rem 0; }
   .pricecard li .ic { width: 15px; height: 15px; color: var(--green); flex: none; margin-top: 3px; }
-  .price-note { font-size: .82rem; color: var(--faint); margin-top: 1.1rem; }
 
   /* footer */
   footer { border-top: 1px solid rgba(255, 255, 255, .07); padding: 2rem 0 2.5rem; margin-top: 2rem; }
@@ -498,38 +497,26 @@
   </div>
 </section>
 
-<!-- ============ PRICE ============ -->
+<!-- ============ FREE ============ -->
 <section id="price" style="padding-top:0">
   <div class="wrap">
-    <h2>Simple, one-time pricing</h2>
-    <p class="sub">No subscriptions, no paywalls on the essentials. Buy once, browse forever.</p>
-    <div class="pricewrap">
-      <div class="pricecard">
+    <h2>100% free</h2>
+    <p class="sub">No subscriptions, no unlocks, no paywalls. Every feature and every mode — free.</p>
+    <div class="pricewrap" style="grid-template-columns: 1fr; max-width: 26rem;">
+      <div class="pricecard featured">
         <div class="pn">Free</div>
-        <div class="pp">$0</div>
-        <p class="pd">Everything you need for a fast, private 2D browser.</p>
+        <div class="pp">$0 <small>forever</small></div>
+        <p class="pd">Everything included, on every device.</p>
         <ul>
           <li><svg class="ic"><use href="#i-check"/></svg>Tabs, omnibox and navigation</li>
           <li><svg class="ic"><use href="#i-check"/></svg>History &amp; bookmarks</li>
           <li><svg class="ic"><use href="#i-check"/></svg>Ad Blocker (EasyList)</li>
-          <li><svg class="ic"><use href="#i-check"/></svg>Offline start page</li>
-        </ul>
-        <a class="btn ghost" href="#">Get it free</a>
-      </div>
-      <div class="pricecard featured">
-        <div class="pn">Unlock</div>
-        <div class="pp">$4.99 <small>one-time</small></div>
-        <p class="pd">Remove usage limits and enable every mode.</p>
-        <ul>
-          <li><svg class="ic"><use href="#i-check"/></svg>Everything in Free</li>
-          <li><svg class="ic"><use href="#i-check"/></svg>Unlimited tabs</li>
           <li><svg class="ic"><use href="#i-check"/></svg>App, passthrough &amp; immersive modes</li>
-          <li><svg class="ic"><use href="#i-check"/></svg>All screen presets</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Offline start page &amp; all screen presets</li>
         </ul>
-        <a class="btn" href="#">Unlock — $4.99</a>
+        <a class="btn" href="#">Get it free</a>
       </div>
     </div>
-    <p class="price-note">Or buy the full app outright for a one-time $14.99 — no unlocks, everything included. Purchases are handled by Meta through the Meta Store.</p>
   </div>
 </section>
 
