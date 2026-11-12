@@ -182,12 +182,6 @@
   .step p { margin: 0; font-size: .88rem; color: var(--muted); }
   .kbd { display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .72rem; font-weight: 600; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .1); border-radius: 6px; padding: .05rem .38rem; margin: .1rem .1rem 0 0; color: var(--text); }
 
-  /* performance */
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-  .stat { background: var(--card); border: 1px solid rgba(255, 255, 255, .08); border-radius: 18px; padding: 1.5rem 1rem; text-align: center; }
-  .stat .v { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; background: linear-gradient(90deg, var(--indigo), var(--sky)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .stat .l { font-size: .82rem; color: var(--muted); margin-top: .4rem; }
-
   /* privacy */
   .priv { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
   .priv .shield { width: 54px; height: 54px; border-radius: 18px; flex: none; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
@@ -220,7 +214,6 @@
     .hero .bwindow { animation: none; }
     .modes { grid-template-columns: 1fr; }
     .steps { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
     .fgrid { grid-template-columns: repeat(2, 1fr); }
     .pricewrap { grid-template-columns: 1fr; }
     .nav-links { display: none; }
@@ -264,7 +257,6 @@
       <a href="#browser">Browser</a>
       <a href="#modes">Modes</a>
       <a href="#input">Input</a>
-      <a href="#performance">Performance</a>
       <a href="#privacy">Privacy</a>
     </div>
     <a class="btn" href="#price">Get it</a>
@@ -466,20 +458,6 @@
         <h3>Physical keyboard</h3>
         <p>System or detachable. New tab, close tab, focus address, next tab, reload, back out — the classic keys, remapped for VR. <span class="kbd">Ctrl+T</span><span class="kbd">Ctrl+W</span><span class="kbd">Ctrl+L</span><span class="kbd">F6</span><span class="kbd">F5</span><span class="kbd">Esc</span></p>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ PERFORMANCE ============ -->
-<section id="performance" style="padding-top:0">
-  <div class="wrap">
-    <h2>Built to feel instant</h2>
-    <p class="sub">A 2D browser is the lightest way to do the web in VR. The numbers to match.</p>
-    <div class="stats">
-      <div class="stat"><div class="v">&lt; 5 s</div><div class="l">Cold start on Quest 3</div></div>
-      <div class="stat"><div class="v">≤ 50 ms</div><div class="l">Pointer latency</div></div>
-      <div class="stat"><div class="v">&lt; 1.5 GB</div><div class="l">RAM in use</div></div>
-      <div class="stat"><div class="v">20+</div><div class="l">Smooth tab bar</div></div>
     </div>
   </div>
 </section>
