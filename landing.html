@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VR Browser 2D — a flat, desktop-like web browser for Meta Quest</title>
+<meta name="description" content="VR Browser 2D puts a fixed monitor in front of you on Meta Quest and renders Chromium on it. A fast, ad-blocked, offline-ready 2D browser with tabs, omnibox, history and bookmarks — no 3D, no floating windows, no head-tracking.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000;
+    --text: #f2f2f7;
+    --muted: rgba(242, 242, 247, .62);
+    --faint: rgba(242, 242, 247, .38);
+    --panel: linear-gradient(160deg, #181d24 0%, #0f1216 100%);
+    --panel-border: rgba(255, 255, 255, .08);
+    --card: rgba(255, 255, 255, .045);
+    --indigo: #5c7cfa;
+    --coral: #ff6b57;
+    --green: #30d158;
+    --amber: #ffb020;
+    --sky: #38bdf8;
+    --neutral: #9ba1a6;
+    --radius: 26px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--text);
+    background:
+      radial-gradient(60rem 30rem at 85% -5%, rgba(66, 99, 235, .16), transparent 60%),
+      radial-gradient(50rem 26rem at 8% 12%, rgba(56, 189, 248, .10), transparent 60%),
+      var(--bg);
+  }
+  .wrap { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(14px);
+    background: rgba(0, 0, 0, .55);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+  }
+  .nav { display: flex; align-items: center; gap: 1.5rem; height: 60px; }
+  .logo { display: flex; align-items: center; gap: .55rem; font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; color: var(--text); text-decoration: none; }
+  .logo .dot {
+    width: 22px; height: 22px; border-radius: 7px;
+    background: conic-gradient(from 210deg, var(--indigo), var(--sky), var(--green), var(--amber), var(--coral), var(--indigo));
+  }
+  .nav-links { display: flex; gap: 1.2rem; margin-left: auto; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: .92rem; font-weight: 500; }
+  .nav-links a:hover { color: var(--text); }
+  .btn {
+    display: inline-block; padding: .55rem 1.1rem; border-radius: 999px;
+    background: var(--indigo); color: #fff; font-weight: 600; font-size: .92rem;
+    text-decoration: none; border: 0; cursor: pointer;
+    transition: transform .12s ease, filter .12s ease;
+  }
+  .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn.ghost { background: transparent; border: 1px solid rgba(255, 255, 255, .2); color: var(--text); }
+  .btn.ghost:hover { background: rgba(255, 255, 255, .06); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 4.5rem 0 3rem; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 2.5rem; align-items: center; }
+  .eyebrow { font-size: .82rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--sky); margin-bottom: .8rem; }
+  h1 { font-size: clamp(2.4rem, 5vw, 3.4rem); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h1 em { font-style: normal; background: linear-gradient(90deg, var(--indigo), var(--sky)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: 1.13rem; color: var(--muted); max-width: 30rem; margin: 0 0 1.4rem; }
+  .badges { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.6rem; }
+  .badge { font-size: .8rem; font-weight: 600; color: var(--muted); border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; padding: .18rem .7rem; }
+  .cta-row { display: flex; gap: .7rem; flex-wrap: wrap; }
+
+  /* ---------- browser window mockup ---------- */
+  .bwindow {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    box-shadow: 0 34px 80px rgba(0, 0, 0, .65);
+    overflow: hidden;
+    font-size: .82rem;
+  }
+  .hero .bwindow { animation: floaty 6s ease-in-out infinite; }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+  @media (prefers-reduced-motion: reduce) { .hero .bwindow { animation: none; } }
+  .btabs { display: flex; align-items: flex-end; gap: .22rem; padding: .5rem .55rem 0; background: rgba(0, 0, 0, .38); }
+  .btab {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .42rem .7rem; border-radius: 9px 9px 0 0;
+    color: var(--muted); cursor: pointer; user-select: none;
+    font-weight: 600; font-size: .76rem; max-width: 132px; flex: none;
+    border: 1px solid transparent; border-bottom: 0;
+  }
+  .btab .ic { width: 13px; height: 13px; flex: none; }
+  .btab .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btab:hover { color: var(--text); background: rgba(255, 255, 255, .05); }
+  .btab.active { color: var(--text); background: rgba(255, 255, 255, .08); border-color: var(--panel-border); }
+  .btab.new { padding: .42rem .55rem; }
+  .bomni { display: flex; align-items: center; gap: .32rem; padding: .45rem .6rem; background: rgba(255, 255, 255, .05); border-bottom: 1px solid var(--panel-border); }
+  .nbtn { width: 27px; height: 27px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--muted); background: transparent; border: 0; cursor: pointer; flex: none; }
+  .nbtn:hover { background: rgba(255, 255, 255, .08); color: var(--text); }
+  .nbtn .ic { width: 16px; height: 16px; }
+  .burl {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: .35rem;
+    background: rgba(0, 0, 0, .38); border: 1px solid rgba(255, 255, 255, .09);
+    border-radius: 999px; padding: .34rem .75rem;
+    color: var(--text); font-size: .78rem;
+  }
+  .burl .ic { width: 12px; height: 12px; color: var(--green); flex: none; }
+  .burl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badpill { display: flex; align-items: center; gap: .32rem; font-size: .72rem; font-weight: 700; color: var(--green); background: color-mix(in srgb, var(--green) 16%, transparent); border-radius: 999px; padding: .24rem .58rem; white-space: nowrap; flex: none; }
+  .badpill .ic { width: 13px; height: 13px; }
+  .bcontent { min-height: 302px; background: rgba(0, 0, 0, .28); }
+
+  /* start page */
+  .start { padding: 1.3rem 1.3rem 1.5rem; }
+  .start .hi { font-size: 1.16rem; font-weight: 800; letter-spacing: -.01em; }
+  .start .when { font-size: .72rem; color: var(--faint); margin-top: .12rem; }
+  .searchbar { margin: .9rem 0 1.05rem; display: flex; align-items: center; gap: .5rem; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .09); border-radius: 999px; padding: .52rem .8rem; color: var(--faint); font-size: .79rem; }
+  .searchbar .ic { width: 15px; height: 15px; flex: none; }
+  .start h4 { margin: 0 0 .5rem; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  .chip2 { display: flex; align-items: center; gap: .4rem; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .07); border-radius: 9px; padding: .32rem .58rem; font-size: .72rem; color: var(--muted); font-weight: 600; }
+  .chip2 .ic { width: 12px; height: 12px; color: var(--sky); }
+
+  /* web page */
+  .web { padding: 1.05rem 1.2rem 1.4rem; }
+  .wbar { display: flex; align-items: center; gap: .35rem; font-size: .72rem; color: var(--faint); margin-bottom: .8rem; }
+  .wbar .ic { width: 12px; height: 12px; color: var(--green); }
+  .adblock { display: flex; align-items: center; gap: .5rem; background: color-mix(in srgb, var(--green) 12%, transparent); border: 1px dashed color-mix(in srgb, var(--green) 45%, transparent); border-radius: 10px; padding: .55rem .7rem; font-size: .74rem; color: var(--green); font-weight: 600; margin-bottom: .9rem; }
+  .adblock .ic { width: 15px; height: 15px; flex: none; }
+  .web h3 { font-size: 1rem; margin: 0 0 .55rem; font-weight: 800; }
+  .line { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .09); margin: .46rem 0; }
+  .line.s { width: 80%; }
+  .line.m { width: 58%; }
+
+  /* ---------- sections ---------- */
+  section { padding: 4rem 0; }
+  h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -.02em; margin: 0 0 .5rem; }
+  .sub { color: var(--muted); max-width: 42rem; margin: 0 0 2.2rem; }
+
+  /* modes */
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .modecard { border-radius: 18px; border: 1px solid var(--panel-border); overflow: hidden; background: rgba(255, 255, 255, .03); min-height: 236px; display: flex; flex-direction: column; }
+  .modevis { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; padding: 1.1rem; }
+  .modebody { padding: .9rem 1rem; }
+  .modebody h3 { margin: 0 0 .25rem; font-size: .98rem; font-weight: 700; }
+  .modebody p { margin: 0; font-size: .8rem; color: var(--muted); }
+  .m-app .modevis { background: linear-gradient(160deg, #141a22, #0b0e12); }
+  .m-pt .modevis { background: linear-gradient(180deg, #26222b 0%, #191519 54%, #0d0b0e 54.2%, #14110f 100%); }
+  .m-imm .modevis { background: radial-gradient(40rem 22rem at 50% 0%, rgba(92, 124, 250, .14), transparent 70%), linear-gradient(180deg, #0c0f13, #08090c); }
+  .mini-window { width: min(150px, 82%); border-radius: 8px; border: 1px solid var(--panel-border); background: var(--panel); overflow: hidden; box-shadow: 0 8px 22px rgba(0, 0, 0, .5); }
+  .m-pt .mini-window { background: linear-gradient(160deg, rgba(24, 29, 36, .94), rgba(15, 18, 22, .94)); backdrop-filter: blur(2px); }
+  .mw-tabs { display: flex; gap: 2px; padding: 4px 5px 0; background: rgba(0, 0, 0, .38); }
+  .mw-tabs i { height: 9px; border-radius: 4px 4px 0 0; background: rgba(255, 255, 255, .08); flex: 1; }
+  .mw-tabs i.on { background: rgba(255, 255, 255, .2); }
+  .mw-url { height: 10px; margin: 4px 5px; border-radius: 4px; background: rgba(0, 0, 0, .4); border: 1px solid rgba(255, 255, 255, .09); }
+  .mw-lines { padding: 5px; }
+  .mw-lines i { display: block; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .1); margin: 4px 0; }
+  .mw-lines i.s { width: 68%; }
+
+  /* features */
+  .fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+  .fcard { background: var(--card); border: 1px solid rgba(255, 255, 255, .07); border-radius: 18px; padding: 1.3rem; }
+  .fcard .ficon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--ac) 18%, transparent); color: var(--ac); margin-bottom: .8rem; }
+  .fcard .ficon .ic { width: 20px; height: 20px; }
+  .fcard h3 { margin: 0 0 .3rem; font-size: 1rem; font-weight: 700; }
+  .fcard p { margin: 0; font-size: .88rem; color: var(--muted); }
+
+  /* input steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .step { position: relative; padding: 1.4rem; border: 1px solid rgba(255, 255, 255, .08); border-radius: 18px; background: var(--card); }
+  .step .n { font-size: .8rem; font-weight: 800; letter-spacing: .1em; color: var(--sky); margin-bottom: .5rem; display: block; }
+  .step .sic { width: 34px; height: 34px; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--ac) 18%, transparent); color: var(--ac); margin-bottom: .7rem; }
+  .step .sic .ic { width: 19px; height: 19px; }
+  .step h3 { margin: 0 0 .3rem; font-size: 1.02rem; }
+  .step p { margin: 0; font-size: .88rem; color: var(--muted); }
+  .kbd { display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .72rem; font-weight: 600; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .1); border-radius: 6px; padding: .05rem .38rem; margin: .1rem .1rem 0 0; color: var(--text); }
+
+  /* performance */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+  .stat { background: var(--card); border: 1px solid rgba(255, 255, 255, .08); border-radius: 18px; padding: 1.5rem 1rem; text-align: center; }
+  .stat .v { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; background: linear-gradient(90deg, var(--indigo), var(--sky)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat .l { font-size: .82rem; color: var(--muted); margin-top: .4rem; }
+
+  /* privacy */
+  .priv { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+  .priv .shield { width: 54px; height: 54px; border-radius: 18px; flex: none; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+  .priv .shield .ic { width: 28px; height: 28px; }
+  .priv div { max-width: 44rem; color: var(--muted); font-size: .98rem; }
+  .priv a { color: var(--sky); }
+
+  /* pricing */
+  .pricewrap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; max-width: 52rem; }
+  .pricecard { background: var(--card); border: 1px solid rgba(255, 255, 255, .08); border-radius: 20px; padding: 1.6rem; }
+  .pricecard.featured { border-color: color-mix(in srgb, var(--indigo) 55%, transparent); background: linear-gradient(160deg, rgba(92, 124, 250, .14), rgba(255, 255, 255, .03)); }
+  .pricecard .pn { font-weight: 800; font-size: 1.1rem; }
+  .pricecard .pp { font-size: 2.2rem; font-weight: 800; margin: .3rem 0 .1rem; letter-spacing: -.02em; }
+  .pricecard .pp small { font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .pricecard .pd { font-size: .85rem; color: var(--muted); margin: 0 0 1.1rem; }
+  .pricecard ul { list-style: none; padding: 0; margin: 0 0 1.2rem; }
+  .pricecard li { display: flex; gap: .5rem; font-size: .85rem; color: var(--muted); margin: .45rem 0; }
+  .pricecard li .ic { width: 15px; height: 15px; color: var(--green); flex: none; margin-top: 3px; }
+  .price-note { font-size: .82rem; color: var(--faint); margin-top: 1.1rem; }
+
+  /* footer */
+  footer { border-top: 1px solid rgba(255, 255, 255, .07); padding: 2rem 0 2.5rem; margin-top: 2rem; }
+  .foot { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .88rem; color: var(--muted); }
+  .foot a { color: var(--muted); text-decoration: none; }
+  .foot a:hover { color: var(--text); }
+
+  .ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero .bwindow { animation: none; }
+    .modes { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .fgrid { grid-template-columns: repeat(2, 1fr); }
+    .pricewrap { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-browser" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M6 6.5h.01M8.5 6.5h.01"/></symbol>
+  <symbol id="i-tabs" viewBox="0 0 24 24"><rect x="3" y="8" width="13" height="12" rx="2"/><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4H18a2 2 0 0 1 2 2v7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.6c0 4.8-3.2 7.9-7.5 9.4-4.3-1.5-7.5-4.6-7.5-9.4V6L12 3z"/><path d="M9 12l2.2 2.2L15.5 9.7"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13h5l-1 8 8-11h-5l1-7z"/></symbol>
+  <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 11V5a1.5 1.5 0 0 1 3 0v6"/><path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 12v1.5a5 5 0 0 1-5 5h-1a5 5 0 0 1-4.5-2.8L4.5 12a1.4 1.4 0 0 1 2.5-1.3L8 12"/></symbol>
+  <symbol id="i-pointer" viewBox="0 0 24 24"><path d="M5 3l6 16 2.2-6.2L19.5 11 5 3z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 4l8 4.5-8 4.5-8-4.5L12 4z"/><path d="M4 13l8 4.5 8-4.5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6"/></symbol>
+  <symbol id="i-forward" viewBox="0 0 24 24"><path d="M10 6l6 6-6 6"/></symbol>
+  <symbol id="i-reload" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 20v-4h4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4V4z"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="i-feather" viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H10L9 22l8.5-11.5H12L13 2z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4 4 10-11"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
+<nav>
+  <div class="wrap nav">
+    <a class="logo" href="#"><span class="dot"></span>VR Browser 2D</a>
+    <div class="nav-links">
+      <a href="#browser">Browser</a>
+      <a href="#modes">Modes</a>
+      <a href="#input">Input</a>
+      <a href="#performance">Performance</a>
+      <a href="#privacy">Privacy</a>
+    </div>
+    <a class="btn" href="#price">Get it</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="browser">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">For Meta Quest · Horizon OS</p>
+      <h1>The web, <em>flat and fast</em> — a real desktop browser for your headset</h1>
+      <p class="lede">VR Browser 2D pins a fixed monitor in front of you and renders Chromium right on it. No 3D space, no floating windows, no head-tracking — just a fast, ad-blocked, offline-ready browser that feels like your desktop.</p>
+      <div class="badges">
+        <span class="badge">Flat 2D monitor</span>
+        <span class="badge">Ad-blocked</span>
+        <span class="badge">No 3D</span>
+        <span class="badge">No head-tracking</span>
+        <span class="badge">No accounts</span>
+        <span class="badge">Works offline</span>
+        <span class="badge">&lt; 5 s cold start</span>
+        <span class="badge">20+ tabs</span>
+      </div>
+      <div class="cta-row">
+        <a class="btn" href="#modes">See how it works</a>
+        <a class="btn ghost" href="privacy.html">Privacy policy</a>
+      </div>
+    </div>
+
+    <div class="bwindow">
+      <div class="btabs">
+        <div class="btab active" data-page="start" data-url="quest://start" data-title="Start"><svg class="ic"><use href="#i-browser"/></svg><span class="t">Start</span></div>
+        <div class="btab" data-url="https://www.example.com" data-title="Example Domain"><svg class="ic"><use href="#i-lock"/></svg><span class="t">Example.com</span></div>
+        <div class="btab" data-url="https://blog.xr-today.dev" data-title="XR Today — the local-first web"><svg class="ic"><use href="#i-lock"/></svg><span class="t">XR Today</span></div>
+        <div class="btab" data-url="https://docs.sr.meta.com" data-title="Meta Spatial SDK — documentation"><svg class="ic"><use href="#i-lock"/></svg><span class="t">SDK docs</span></div>
+        <div class="btab new" title="New tab"><svg class="ic"><use href="#i-plus"/></svg></div>
+      </div>
+      <div class="bomni">
+        <button class="nbtn" title="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <button class="nbtn" title="Forward"><svg class="ic"><use href="#i-forward"/></svg></button>
+        <button class="nbtn" title="Reload"><svg class="ic"><use href="#i-reload"/></svg></button>
+        <button class="nbtn" title="Home"><svg class="ic"><use href="#i-home"/></svg></button>
+        <div class="burl"><svg class="ic"><use href="#i-lock"/></svg><span id="burl">quest://start</span></div>
+        <span class="badpill"><svg class="ic"><use href="#i-shield"/></svg><b id="bad">0</b> blocked</span>
+        <button class="nbtn" title="Menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+      </div>
+      <div class="bcontent">
+        <div class="start" id="page-start">
+          <div class="hi">Good evening</div>
+          <div class="when">Thursday, 12 November</div>
+          <div class="searchbar"><svg class="ic"><use href="#i-search"/></svg>Search or type a URL</div>
+          <h4>Recent</h4>
+          <div class="chips">
+            <span class="chip2"><svg class="ic"><use href="#i-history"/></svg>example.com</span>
+            <span class="chip2"><svg class="ic"><use href="#i-history"/></svg>blog.xr-today.dev</span>
+            <span class="chip2"><svg class="ic"><use href="#i-history"/></svg>docs.sr.meta.com</span>
+          </div>
+          <h4>Bookmarks</h4>
+          <div class="chips">
+            <span class="chip2"><svg class="ic"><use href="#i-bookmark"/></svg>Meta Horizon Store</span>
+            <span class="chip2"><svg class="ic"><use href="#i-bookmark"/></svg>GitHub</span>
+            <span class="chip2"><svg class="ic"><use href="#i-bookmark"/></svg>Dev docs</span>
+          </div>
+        </div>
+        <div class="web" id="page-web" style="display:none">
+          <div class="wbar"><svg class="ic"><use href="#i-lock"/></svg><span id="webhost">example.com</span></div>
+          <div class="adblock"><svg class="ic"><use href="#i-shield"/></svg>Ad Blocker on · <span id="bad2">3</span> ads blocked on this page</div>
+          <h3 id="web-title">Example Domain</h3>
+          <div class="line"></div>
+          <div class="line"></div>
+          <div class="line s"></div>
+          <div class="line m"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MODES ============ -->
+<section id="modes">
+  <div class="wrap">
+    <h2>One monitor, three ways</h2>
+    <p class="sub">The screen is fixed in the world — it never follows your head. Pick how much of your surroundings you want to keep.</p>
+    <div class="modes">
+      <div class="modecard m-app">
+        <div class="modevis">
+          <div class="mini-window">
+            <div class="mw-tabs"><i class="on"></i><i></i></div>
+            <div class="mw-url"></div>
+            <div class="mw-lines"><i></i><i></i><i class="s"></i></div>
+          </div>
+        </div>
+        <div class="modebody">
+          <h3>App mode</h3>
+          <p>The monitor fills your view. The cleanest, most immersive 2D browser.</p>
+        </div>
+      </div>
+      <div class="modecard m-pt">
+        <div class="modevis">
+          <div class="mini-window">
+            <div class="mw-tabs"><i class="on"></i><i></i></div>
+            <div class="mw-url"></div>
+            <div class="mw-lines"><i></i><i></i><i class="s"></i></div>
+          </div>
+        </div>
+        <div class="modebody">
+          <h3>Passthrough</h3>
+          <p>See your room through the camera, with the browser pinned in front of you.</p>
+        </div>
+      </div>
+      <div class="modecard m-imm">
+        <div class="modevis">
+          <div class="mini-window">
+            <div class="mw-tabs"><i class="on"></i><i></i></div>
+            <div class="mw-url"></div>
+            <div class="mw-lines"><i></i><i></i><i class="s"></i></div>
+          </div>
+        </div>
+        <div class="modebody">
+          <h3>Immersive screen</h3>
+          <p>A fixed ~2 m screen with 55″ / 85″ / 120″ presets and snap-to-front.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features" style="padding-top:0">
+  <div class="wrap">
+    <h2>What you get</h2>
+    <p class="sub">Desktop chrome on a flat plane. Minimal VR, maximum web.</p>
+    <div class="fgrid">
+      <div class="fcard" style="--ac: var(--indigo)">
+        <div class="ficon"><svg class="ic"><use href="#i-tabs"/></svg></div>
+        <h3>Tabs that stay smooth</h3>
+        <p>Background tabs are paused, WebViews destroyed on close. The tab bar stays fluid well past 20 tabs.</p>
+      </div>
+      <div class="fcard" style="--ac: var(--sky)">
+        <div class="ficon"><svg class="ic"><use href="#i-search"/></svg></div>
+        <h3>Offline omnibox</h3>
+        <p>As-you-type suggestions come from your own history and bookmarks — generated locally, never sent anywhere.</p>
+      </div>
+      <div class="fcard" style="--ac: var(--green)">
+        <div class="ficon"><svg class="ic"><use href="#i-shield"/></svg></div>
+        <h3>Ad Blocker (EasyList)</h3>
+        <p>Requests are filtered on-device with the public EasyList ruleset. Toggle it on or off in settings.</p>
+      </div>
+      <div class="fcard" style="--ac: var(--amber)">
+        <div class="ficon"><svg class="ic"><use href="#i-history"/></svg></div>
+        <h3>Offline start page</h3>
+        <p>Open the app to your recent sites and bookmarks instantly — no network needed to get going.</p>
+      </div>
+      <div class="fcard" style="--ac: var(--indigo)">
+        <div class="ficon"><svg class="ic"><use href="#i-lock"/></svg></div>
+        <h3>Private by design</h3>
+        <p>History, bookmarks, cookies and settings live only on your headset. No accounts, no ads, no analytics.</p>
+      </div>
+      <div class="fcard" style="--ac: var(--neutral)">
+        <div class="ficon"><svg class="ic"><use href="#i-layers"/></svg></div>
+        <h3>Flat, not floating</h3>
+        <p>No 3D space, no floating windows, no head-tracking. A fixed desktop-style monitor that stays put.</p>
+      </div>
+      <div class="fcard" style="--ac: var(--coral)">
+        <div class="ficon"><svg class="ic"><use href="#i-keyboard"/></svg></div>
+        <h3>Full input</h3>
+        <p>Controller, hand tracking and a physical keyboard — with the shortcuts you already know.</p>
+      </div>
+      <div class="fcard" style="--ac: var(--green)">
+        <div class="ficon"><svg class="ic"><use href="#i-feather"/></svg></div>
+        <h3>Light and fast</h3>
+        <p>A native, 2D app. Cold start under 5 seconds, low RAM, and a pointer you can keep up with.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INPUT ============ -->
+<section id="input" style="padding-top:0">
+  <div class="wrap">
+    <h2>Drive it like a desktop</h2>
+    <p class="sub">Three ways to point, click, scroll and navigate.</p>
+    <div class="steps">
+      <div class="step" style="--ac: var(--indigo)">
+        <span class="n">01</span>
+        <div class="sic"><svg class="ic"><use href="#i-pointer" /></svg></div>
+        <h3>Controller = mouse</h3>
+        <p>Laser pointer to aim, trigger to click, stick to scroll, right button for the context menu.</p>
+      </div>
+      <div class="step" style="--ac: var(--green)">
+        <span class="n">02</span>
+        <div class="sic"><svg class="ic"><use href="#i-hand"/></svg></div>
+        <h3>Hand tracking</h3>
+        <p>Pinch to click, swipe to scroll. No controllers needed when you don't want them.</p>
+      </div>
+      <div class="step" style="--ac: var(--sky)">
+        <span class="n">03</span>
+        <div class="sic"><svg class="ic"><use href="#i-keyboard"/></svg></div>
+        <h3>Physical keyboard</h3>
+        <p>System or detachable. New tab, close tab, focus address, next tab, reload, back out — the classic keys, remapped for VR. <span class="kbd">Ctrl+T</span><span class="kbd">Ctrl+W</span><span class="kbd">Ctrl+L</span><span class="kbd">F6</span><span class="kbd">F5</span><span class="kbd">Esc</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PERFORMANCE ============ -->
+<section id="performance" style="padding-top:0">
+  <div class="wrap">
+    <h2>Built to feel instant</h2>
+    <p class="sub">A 2D browser is the lightest way to do the web in VR. The numbers to match.</p>
+    <div class="stats">
+      <div class="stat"><div class="v">&lt; 5 s</div><div class="l">Cold start on Quest 3</div></div>
+      <div class="stat"><div class="v">≤ 50 ms</div><div class="l">Pointer latency</div></div>
+      <div class="stat"><div class="v">&lt; 1.5 GB</div><div class="l">RAM in use</div></div>
+      <div class="stat"><div class="v">20+</div><div class="l">Smooth tab bar</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRIVACY ============ -->
+<section id="privacy" style="padding-top:0">
+  <div class="wrap">
+    <div class="priv">
+      <div class="shield"><svg class="ic"><use href="#i-shield"/></svg></div>
+      <div>
+        <h2 style="margin-bottom:.4rem">Your browsing stays on your headset</h2>
+        <p>No accounts, no ads, no analytics, no server-side data. History, bookmarks, cookies and settings are stored locally, the address bar completes from your own history, and the Ad Blocker runs entirely on-device. The only network activity is the pages you visit, the searches you run, and optional, opt-in Meta SDK telemetry. Read the full <a href="privacy.html">Privacy Policy</a> and <a href="terms.html">Terms of Service</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICE ============ -->
+<section id="price" style="padding-top:0">
+  <div class="wrap">
+    <h2>Simple, one-time pricing</h2>
+    <p class="sub">No subscriptions, no paywalls on the essentials. Buy once, browse forever.</p>
+    <div class="pricewrap">
+      <div class="pricecard">
+        <div class="pn">Free</div>
+        <div class="pp">$0</div>
+        <p class="pd">Everything you need for a fast, private 2D browser.</p>
+        <ul>
+          <li><svg class="ic"><use href="#i-check"/></svg>Tabs, omnibox and navigation</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>History &amp; bookmarks</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Ad Blocker (EasyList)</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Offline start page</li>
+        </ul>
+        <a class="btn ghost" href="#">Get it free</a>
+      </div>
+      <div class="pricecard featured">
+        <div class="pn">Unlock</div>
+        <div class="pp">$4.99 <small>one-time</small></div>
+        <p class="pd">Remove usage limits and enable every mode.</p>
+        <ul>
+          <li><svg class="ic"><use href="#i-check"/></svg>Everything in Free</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Unlimited tabs</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>App, passthrough &amp; immersive modes</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>All screen presets</li>
+        </ul>
+        <a class="btn" href="#">Unlock — $4.99</a>
+      </div>
+    </div>
+    <p class="price-note">Or buy the full app outright for a one-time $14.99 — no unlocks, everything included. Purchases are handled by Meta through the Meta Store.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div>VR Browser 2D — a flat, desktop-like web browser for Meta Quest · Ad-blocked · No accounts</div>
+    <div><a href="index.html">Legal</a> · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></div>
+    <div>Contact: <a href="mailto:oisurka@gmail.com">oisurka@gmail.com</a></div>
+  </div>
+</footer>
+
+<script>
+  const burl = document.getElementById("burl");
+  const webhost = document.getElementById("webhost");
+  const webtitle = document.getElementById("web-title");
+  const pageStart = document.getElementById("page-start");
+  const pageWeb = document.getElementById("page-web");
+  const bad = document.getElementById("bad");
+  const bad2 = document.getElementById("bad2");
+  let webActive = false;
+
+  function goStart() {
+    webActive = false;
+    burl.textContent = "quest://start";
+    bad.textContent = "0";
+    pageStart.style.display = "";
+    pageWeb.style.display = "none";
+  }
+  function goWeb(url, title) {
+    webActive = true;
+    burl.textContent = url;
+    webtitle.textContent = title;
+    webhost.textContent = url.replace(/^https?:\/\//, "");
+    const n = 2 + Math.floor(Math.random() * 6);
+    bad.textContent = String(8 + Math.floor(Math.random() * 18));
+    bad2.textContent = String(n);
+    pageStart.style.display = "none";
+    pageWeb.style.display = "";
+  }
+  document.querySelectorAll(".btab[data-url]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".btab").forEach((x) => x.classList.remove("active"));
+      tab.classList.add("active");
+      if (tab.dataset.page === "start") goStart();
+      else goWeb(tab.dataset.url, tab.dataset.title);
+    });
+  });
+  setInterval(() => {
+    if (webActive) {
+      const v = parseInt(bad.textContent || "0", 10);
+      if (Math.random() < 0.6) bad.textContent = String(v + 1);
+    }
+  }, 2600);
+</script>
+</body>
+</html>
